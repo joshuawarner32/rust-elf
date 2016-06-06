@@ -1,14 +1,14 @@
-use std::fmt;
+use std::{fmt, mem};
 
 pub enum Maybe<T, V> {
     Known(T),
-    Unknown(V)
+    Unknown(V),
 }
 
 use Maybe::Known;
 use Maybe::Unknown;
 
-impl<T:fmt::Display, V:fmt::Display> fmt::Display for Maybe<T, V> {
+impl<T: fmt::Display, V: fmt::Display> fmt::Display for Maybe<T, V> {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         match self {
             &Known(ref val) => write!(f, "{}", val),
@@ -17,6 +17,7 @@ impl<T:fmt::Display, V:fmt::Display> fmt::Display for Maybe<T, V> {
     }
 }
 
+#[derive(Debug)]
 #[repr(u8)]
 pub enum OsAbi {
     SystemV = 0,
@@ -52,29 +53,14 @@ impl OsAbi {
             64 => Known(OsAbi::ArmEabi),
             97 => Known(OsAbi::Arm),
             255 => Known(OsAbi::Standalone),
-            _ => Unknown(val)
+            _ => Unknown(val),
         }
     }
 }
 
 impl fmt::Display for OsAbi {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        match *self {
-            OsAbi::SystemV => write!(f, "SystemV"),
-            OsAbi::HpUx => write!(f, "HpUx"),
-            OsAbi::NetBsd => write!(f, "NetBsd"),
-            OsAbi::Linux => write!(f, "Linux"),
-            OsAbi::Solaris => write!(f, "Solaris"),
-            OsAbi::Aix => write!(f, "Aix"),
-            OsAbi::Irix => write!(f, "Irix"),
-            OsAbi::FreeBsd => write!(f, "FreeBsd"),
-            OsAbi::Tru64Unix => write!(f, "Tru64Unix"),
-            OsAbi::Modesto => write!(f, "Modesto"),
-            OsAbi::OpenBsd => write!(f, "OpenBsd"),
-            OsAbi::ArmEabi => write!(f, "ArmEabi"),
-            OsAbi::Arm => write!(f, "Arm"),
-            OsAbi::Standalone => write!(f, "Standalone"),
-        }
+        write!(f, "{:?}", self)
     }
 }
 
@@ -89,7 +75,7 @@ impl Bits {
         match val {
             1 => Known(Bits::Bits32),
             2 => Known(Bits::Bits64),
-            _ => Unknown(val)
+            _ => Unknown(val),
         }
     }
 }
@@ -106,7 +92,7 @@ impl fmt::Display for Bits {
 #[repr(u8)]
 pub enum Endian {
     Little = 1,
-    Big = 2
+    Big = 2,
 }
 
 impl Endian {
@@ -114,7 +100,7 @@ impl Endian {
         match val {
             1 => Known(Endian::Little),
             2 => Known(Endian::Big),
-            _ => Unknown(val)
+            _ => Unknown(val),
         }
     }
 }
@@ -128,6 +114,7 @@ impl fmt::Display for Endian {
     }
 }
 
+#[derive(Debug)]
 #[repr(u16)]
 pub enum ObjectType {
     NoType = 0,
@@ -145,20 +132,14 @@ impl ObjectType {
             2 => Known(ObjectType::Executable),
             3 => Known(ObjectType::SharedObject),
             4 => Known(ObjectType::CoreDump),
-            _ => Unknown(val)
+            _ => Unknown(val),
         }
     }
 }
 
 impl fmt::Display for ObjectType {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        match *self {
-            ObjectType::NoType => write!(f, "NoType"),
-            ObjectType::Relocatable => write!(f, "Relocatable"),
-            ObjectType::Executable => write!(f, "Executable"),
-            ObjectType::SharedObject => write!(f, "SharedObject"),
-            ObjectType::CoreDump => write!(f, "CoreDump"),
-        }
+        write!(f, "{:?}", self)
     }
 }
 
@@ -328,7 +309,7 @@ impl Machine {
             188 => Known(Machine::TilePro),
             189 => Known(Machine::XilinxMicroBlaze),
             191 => Known(Machine::TileraTileGx),
-            _ => Unknown(val)
+            _ => Unknown(val),
         }
     }
 }
@@ -339,33 +320,31 @@ impl fmt::Display for Machine {
     }
 }
 
-// struct Header {
-//   magic: [u8; 4],	// "\x7fELF"
-//   bits: u8, // 1 = 32-bit, 2 = 64-bit
-//   endian: u8, // 1 = little-endian, 2 = big-endian
-//   version: u8, // 1 = only valid value
-//   abi: u8, // 0 = UNIX System V
-//               // 1 = HP-UX
-//               // 2 = NetBSD
-//               // 3 = Linux
-//               // 6 = Solaris
-//               // 7 = IBM AIX
-//               // 8 = SGI Irix
-//               // 9 = FreeBSD
-//               // 10 = Compaq TRU64 UNIX
-//               // 11 = Novell Modesto
-//               // 12 = OpenBSD
-//               // 64 = ARM EABI
-//               // 97 = ARM
-//               // 255 = Standalone (embedded) application
-//   abi_version: u8, // options depend on abi above
-//   padding: [u8; 7],
-//
-//   // ...
-// }
+struct Header<Addr> {
+    magic: [u8; 4], // "\x7fELF"
+    bits: u8,
+    endian: u8,
+    format_version: u8,
+    abi: u8,
+    abi_version: u8,
+    padding: [u8; 7],
+    object_type: u16,
+    machine: u16,
+    version: u32,
+    entry_point_address: Addr,
+    program_header_offset: Addr,
+    section_header_offset: Addr,
+    processor_flags: u32,
+    header_size: u16,
+    program_header_entry_size: u16,
+    program_header_entry_count: u16,
+    section_header_entry_size: u16,
+    section_header_entry_count: u16,
+    section_header_string_table_index: u16,
+}
 
 pub struct Object<'a> {
-    data: &'a [u8]
+    data: &'a [u8],
 }
 
 impl<'a> Object<'a> {
@@ -378,45 +357,128 @@ impl<'a> Object<'a> {
             return Err(());
         }
 
-        if data[6] != 1 {
+        if data[6] != 1 || data[4] < 1 || data[4] > 2 || data[5] < 1 || data[5] > 2 {
             return Err(());
+        }
+
+        match data[4] {
+            1 if data.len() < mem::size_of::<Header<u32>>() => return Err(()),
+            2 if data.len() < mem::size_of::<Header<u64>>() => return Err(()),
+            1 | 2 => {}
+            _ => return Err(())
         }
 
         Ok(Object { data: data })
     }
 
-    pub fn bits(&self) -> Maybe<Bits, u8> {
-        Bits::from(self.data[4])
+    fn header<Addr>(&self) -> &'a Header<Addr> {
+        unsafe {
+            // We guarantee in the ::new constructor that `data` is big enough
+            mem::transmute(self.data.as_ptr())
+        }
     }
 
-    pub fn endian(&self) -> Maybe<Endian, u8> {
-        Endian::from(self.data[5])
+    pub fn bits(&self) -> Bits {
+        unsafe {
+            // Already checked for validity in the ::new constructor
+            mem::transmute(self.header::<u32>().bits)
+        }
+    }
+
+    pub fn endian(&self) -> Endian {
+        unsafe {
+            // Already checked for validity in the ::new constructor
+            mem::transmute(self.header::<u32>().endian)
+        }
     }
 
     pub fn abi(&self) -> Maybe<OsAbi, u8> {
-        OsAbi::from(self.data[7])
+        OsAbi::from(self.header::<u32>().abi)
     }
 
     pub fn abi_version(&self) -> u8 {
-        self.data[8]
-    }
-
-    fn read_u16(&self, offset: usize) -> u16 {
-        self.data[offset] as u16 + ((self.data[offset + 1] as u16) << 8)
+        self.header::<u32>().abi_version
     }
 
     pub fn object_type(&self) -> Maybe<ObjectType, u16> {
-        ObjectType::from(self.read_u16(16))
+        ObjectType::from(self.header::<u32>().object_type)
     }
 
     pub fn machine(&self) -> Maybe<Machine, u16> {
-        Machine::from(self.read_u16(18))
+        Machine::from(self.header::<u32>().object_type)
+    }
+
+    pub fn version(&self) -> u32 {
+        self.header::<u32>().version
+    }
+
+    pub fn entry_point_address(&self) -> u64 {
+        match self.bits() {
+            Bits::Bits32 => self.header::<u32>().entry_point_address as u64,
+            Bits::Bits64 => self.header::<u64>().entry_point_address,
+        }
+    }
+
+    pub fn program_header_offset(&self) -> u64 {
+        match self.bits() {
+            Bits::Bits32 => self.header::<u32>().program_header_offset as u64,
+            Bits::Bits64 => self.header::<u64>().program_header_offset,
+        }
+    }
+
+    pub fn section_header_offset(&self) -> u64 {
+        match self.bits() {
+            Bits::Bits32 => self.header::<u32>().section_header_offset as u64,
+            Bits::Bits64 => self.header::<u64>().section_header_offset,
+        }
+    }
+
+    pub fn processor_flags(&self) -> u32 {
+        match self.bits() {
+                Bits::Bits32 => self.header::<u32>().processor_flags,
+                Bits::Bits64 => self.header::<u64>().processor_flags,
+        }
+    }
+    pub fn header_size(&self) -> u16 {
+        match self.bits() {
+                Bits::Bits32 => self.header::<u32>().header_size as u16,
+                Bits::Bits64 => self.header::<u64>().header_size,
+        }
+    }
+    pub fn program_header_entry_size(&self) -> u16 {
+        match self.bits() {
+                Bits::Bits32 => self.header::<u32>().program_header_entry_size as u16,
+                Bits::Bits64 => self.header::<u64>().program_header_entry_size,
+        }
+    }
+    pub fn program_header_entry_count(&self) -> u16 {
+        match self.bits() {
+                Bits::Bits32 => self.header::<u32>().program_header_entry_count as u16,
+                Bits::Bits64 => self.header::<u64>().program_header_entry_count,
+        }
+    }
+    pub fn section_header_entry_size(&self) -> u16 {
+        match self.bits() {
+                Bits::Bits32 => self.header::<u32>().section_header_entry_size as u16,
+                Bits::Bits64 => self.header::<u64>().section_header_entry_size,
+        }
+    }
+    pub fn section_header_entry_count(&self) -> u16 {
+        match self.bits() {
+                Bits::Bits32 => self.header::<u32>().section_header_entry_count as u16,
+                Bits::Bits64 => self.header::<u64>().section_header_entry_count,
+        }
+    }
+    pub fn section_header_string_table_index(&self) -> u16 {
+        match self.bits() {
+                Bits::Bits32 => self.header::<u32>().section_header_string_table_index as u16,
+                Bits::Bits64 => self.header::<u64>().section_header_string_table_index,
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
     #[test]
-    fn it_works() {
-    }
+    fn it_works() {}
 }

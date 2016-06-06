@@ -17,4 +17,5 @@ fn main() {
     let obj = elf::Object::new(&contents).expect("valid elf file");
 
     println!("{} {} {} {} {}:{}", obj.object_type(), obj.machine(), obj.bits(), obj.endian(), obj.abi(), obj.abi_version());
+    println!("version: {}", obj.version());
 }
