@@ -1,3 +1,5 @@
+mod chunky;
+
 use std::{fmt, mem};
 
 pub enum Maybe<T, V> {
